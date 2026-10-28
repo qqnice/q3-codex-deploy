@@ -4,6 +4,8 @@
 
 ## 1. 任務與完成目標
 
+本次只部署在 Ubuntu VM，不部署到 NAS，也不設定 NAS 前置代理或交由 NAS 管理 q3 憑證。模型、帳號及對話均保存於 VM 本機資料卷。
+
 本次確認的正式網域為 **q3.qqnice.org**，所有代理、WEBUI_URL、CORS、ACME 憑證及驗收網址都以此為準。如果已有部分部署，先盤點及備份，再修正本次 AI 服務的實際設定；不要只更新 Git 就宣稱主機已改好。正式憑證必須涵蓋這個名稱，不能只改憑證目錄名稱來替代申請。
 
 請在你目前所在的**目標 Linux 虛擬機**上部署 Ollama 與 Open WebUI，讓使用者透過 **https://q3.qqnice.org** 登入、選擇本機模型並完成串流對話。這台 VM 已有兩個網站及 NAS 相關服務，必須保留其功能、資料、網域與既有管理方式。
@@ -17,7 +19,7 @@
 ## 2. 先讀哪些資料
 
 1. 讀取操作目錄適用的既有 AGENTS.md；不要為了本任務覆寫它。
-2. 讀取本儲存庫的 `DEPLOYMENT_REFERENCE.md` 與 `templates/README.md`。參考範例涵蓋 Docker Nginx、主機 Apache、主機 Nginx、NAS 前置代理等分支；只執行符合實機的分支。先讀唯讀盤點工具 `scripts/inspect-host.sh`，確認後可執行。
+2. 讀取本儲存庫的 `DEPLOYMENT_REFERENCE.md` 與 `templates/README.md`。參考範例涵蓋 VM 上的 Docker Nginx、主機 Apache、主機 Nginx 等分支；只執行符合實機的分支。先讀唯讀盤點工具 `scripts/inspect-host.sh`，確認後可執行。
 3. 若已有 `DEPLOYMENT_STATUS.md`，先讀取並核對實際檔案、容器、憑證及測試狀態，從未完成處繼續，不能只憑筆記宣稱成功。
 
 教材來源：[Notion 完整部署手冊](https://app.notion.com/p/407efa09c19681ee8fb5d78abdd37a0f)。本包已有離線副本，沒有 Notion 連線也可以工作。不要要求使用者先設定 Notion MCP。
@@ -50,9 +52,9 @@
 - 身分、主機名稱、Linux 發行版、CPU 架構、時區、工作目錄。若目前其實在 Mac／Windows 或不是目標 VM，停止部署變更並指出執行位置。
 - Docker daemon、Compose 版本、Docker context 與實際連線對象；不能意外操作其他 Docker 主機。若這台機器原本沒有 Docker，先完成入口盤點，再依該發行版官方方法安裝，保留原有服務。
 - 所有容器的名稱、映像、專案標籤、健康狀態、對外 Port；Compose 專案實際目錄、載入的主檔／增補檔、COMPOSE_FILE 與相關 systemd／維護腳本。
-- 哪個程序／容器／NAS 接收外部 TCP 80 和 443，以及 Internet 到 VM 的實際路徑。
+- VM 上哪個程序／容器接收外部 TCP 80 和 443，以及 Internet 到 VM 的實際路徑。
 - 原有網站名稱、VirtualHost／server_name、憑證管理位置、Nginx 掛載、Docker 網路、Volume 與既有續期排程。只擷取必要欄位，不將完整含密碼的環境設定輸出到紀錄。
-- NAS 是同機檔案服務、Nextcloud 類應用，還是位於 VM 前方的代理；不要把 NAS 當成必然需要遷移的入口。
+- 本次部署目標只有 Ubuntu VM，不在 NAS 安裝容器或修改代理／憑證；若發現外部入口受其他設備控制，記錄實際路徑與所需資訊，不自行新增 NAS 規則。
 - 原有兩網站和 NAS 的部署前基準：回應、必要功能、容器狀態與資源使用。需要登入才能驗收的功能，標記待使用者確認，不猜測。
 - 可用 RAM、CPU、磁碟、備份空間；GPU 只有 VM 能看到且容器 runtime 已可用才採用。
 - q3 的 A／AAAA／CAA、入口 IP、既有防火牆與轉送規則。公開 DNS 查得到不等於外網 Port 已通。
@@ -87,7 +89,6 @@ docker stats --no-stream
 | D：Docker 入口 | 既有 Nginx 容器接收 80／443 | 保留既有網路；另連 q3-proxy，代理至 q3-open-webui:8080 |
 | A：主機 Apache | 主機 Apache 接收 80／443 | WebUI 僅發布 127.0.0.1:3000，Apache 新增 q3 VirtualHost |
 | N：主機 Nginx | 主機 Nginx 接收 80／443 | WebUI 僅發布 127.0.0.1:3000，主機 Nginx 新增 q3 server |
-| S：NAS 前置代理 | 公開 TLS 在 NAS 終止 | WebUI 發布在 VM 指定內網 IP；限制只有 NAS／指定代理來源可達，憑證由 NAS 管理 |
 
 若實機是 Caddy、Traefik、Nginx Proxy Manager 或其他既有入口，沿用其管理方式，核對官方文件；不要強制換成教材架構。無法判斷的多層入口先畫出實際路徑，再提出最小必要問題。
 
@@ -120,14 +121,14 @@ docker stats --no-stream
 - Ollama 不發布主機 11434。主線的 WebUI 也不發布主機 Port。
 - Docker 入口：建立或核對外部網路 `q3-proxy`。Nginx 保留所有原有網路，另接此網路；WebUI 在此網路提供唯一別名 `q3-open-webui`，再加入 AI 後端網路；Ollama 只加入 AI 後端網路。後端網路需容許下載模型。
 - 同時處理「正在跑的 Nginx 容器」及「日後重建的 Compose 設定」。必要時先 network connect，再保存正確增補檔；既有還原／啟動腳本也要能載入增補檔，不改動其他服務。
-- 主機代理：只發布 loopback 3000 到容器 8080。NAS 代理：發布在真實 VM 內網 IP 並限制來源，不能把 NAS 的 localhost 當 VM。
+- 主機 Apache／Nginx 代理：只發布 loopback 3000 到容器 8080。Docker Nginx 主線不發布 WebUI 主機 Port；本次不建立供 NAS 存取的內網接口。
 - 注意 Docker Port 規則與 UFW 的實際作用，不能只看到 INPUT 規則就宣稱已限制存取；不無差別開放 3000、8080、11434。
 - 代理必須支援 WebSocket、HTTP/1.1、正確 Host 與轉送標頭、串流、適當逾時及上傳限制。來源 IP 信任鏈依實際代理層設定。
 - Docker Nginx 的後端名稱要能在 AI 容器重建、IP 改變後恢復解析。使用適合現有版本的 Docker DNS／resolver 方案；主機 Nginx 不套用 Docker 的 127.0.0.11。
 
 ### 5.4 DNS、憑證與自動續期
 
-- 先確認 TLS 真正終止的位置，憑證安裝在該層。沿用現有 ACME／Certbot／NAS 管理方式；不要在相同 Port 啟動第二套入口或並存不必要的憑證管理程序。
+- 先確認 TLS 真正終止的位置，憑證安裝在該層。沿用 VM 現有 ACME／Certbot 管理方式；不要在相同 Port 啟動第二套入口或並存不必要的憑證管理程序。
 - q3 的 DNS 錯誤或未建立時，提供具體需要的紀錄、正確入口與查驗結果，請使用者完成；繼續內部服務及設定準備。不能猜公網 IP，也不能任意改現有網站 DNS。
 - HTTP-01：先建立只有 q3 的 HTTP 驗證路徑，外部可達後先演練再正式申請。使用 webroot 等不搶占入口的方式；沒有憑證前不啟用引用不存在檔案的 HTTPS 設定。
 - 外部 80 無法開放時再考慮 DNS-01。先確認 DNS 業者及可用的受限 API／既有 ACME 工具；手動 TXT 只可做流程測試，不算完成自動續期。
@@ -140,7 +141,7 @@ docker stats --no-stream
 - 建立 AI 備份腳本，保存設定、固定密鑰、WebUI 帳號／對話與 Ollama 模型。記錄真實 Volume 名稱，不只備份 compose.yml。
 - 使用一致性備份；必要時只短暫停止新 AI 服務，失敗也恢復它。保護備份中的帳密與對話，不把 SQLite 工作目錄隨意移到 NAS 分享。
 - 包含備份檢查碼、成功／失敗標記與空間檢查。使用乾淨的暫存目錄，避免檢查碼檔把自己納入雜湊。
-- 備份新代理規則與增補檔，補上既有備份流程漏掉的資料。NAS 離機備份位置未知時，只準備本機備份並列出待補欄位。
+- 備份新代理規則與增補檔，補上既有備份流程漏掉的資料。先完成 VM 本機備份；離機備份位置待另行指定，不將 NAS 存取權當成本次前提。
 - 驗證只重建 AI 容器後帳號、對話、模型仍保留；不得刪資料來示範。
 - 回復腳本只針對這次 q3 變更，預設保留資料與憑證；更新前先備份，資料庫遷移後不可假設換回舊映像就能還原。
 - 如已有適用腳本，修改或沿用，避免建立兩組功能相同的排程與設定。
@@ -172,7 +173,7 @@ docker stats --no-stream
 依選定路線實際產生下列成果，存放位置寫進進度檔：
 
 - AI Compose、必要增補檔、限制權限的 .env；.env 不納入一般 Git 追蹤或分享文件。
-- q3 專屬代理設定，或 NAS 所需的具體代理欄位與操作結果。
+- VM 上 q3 專屬代理設定及操作結果；不產生 NAS 代理規則。
 - 續期腳本／hook／timer 或已沿用排程的紀錄。
 - AI 備份腳本、唯讀驗證腳本與 q3 回復步驟；腳本重跑不能覆寫既有資料或建立重複排程。
 - `DEPLOYMENT_STATUS.md`：持續進度及實測證據。
@@ -201,7 +202,7 @@ docker stats --no-stream
 
 優先用現有工具完成驗證。沒有瀏覽器時，可使用安全的 HTTP／API 測試確認可驗證部分，不把管理員密碼印出；真正的瀏覽器登入／串流體驗仍列待使用者一次確認，不能假稱看過畫面。
 
-如果外部 DNS、NAS 管理權限或使用者瀏覽器驗收尚缺，最後報告應區分「內部服務就緒」「HTTPS 就緒」「仍待驗收」，不能統稱全部部署完成。
+如果外部 DNS、VM 管理權限或使用者瀏覽器驗收尚缺，最後報告應區分「內部服務就緒」「HTTPS 就緒」「仍待驗收」，不能統稱全部部署完成。
 
 最後用簡短繁體中文交付：
 

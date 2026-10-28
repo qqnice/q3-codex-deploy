@@ -37,12 +37,14 @@ assert f"https://{domain}$request_uri" in tls
 assert f"/etc/letsencrypt/live/{domain}/fullchain.pem" in tls
 assert f"/etc/letsencrypt/live/{domain}/privkey.pem" in tls
 assert "gemma3:1b" in task and "gemma3:1b" in guide
+assert "| S：NAS" not in task
+assert "# 13 本次部署範圍：Ubuntu VM" in guide
 assert "qwen3:1.7b" not in guide
 assert "/no_think" not in guide
 assert "file-upload://" not in guide
 assert "notion-file-block://" not in guide
 assert len(re.findall(r"^# \d+ ", guide, re.M)) == 20
-assert len(re.findall(r"^```bash$", guide, re.M)) == 73
+assert len(re.findall(r"^```bash$", guide, re.M)) == 71
 assert len(re.findall(r"^```mermaid$", guide, re.M)) == 2
 for image in re.findall(r"!\[[^\]]*\]\((diagrams/[^)]+)\)", guide):
     assert (root / image).is_file(), image

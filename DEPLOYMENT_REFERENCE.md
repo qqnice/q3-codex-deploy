@@ -8,7 +8,7 @@
 
 ---
 
-在既有 Linux 虛擬機上，保留原本兩個網站與 NAS 服務，新增 Ollama 與 Open WebUI，透過 **https://q3.qqnice.org** 提供具有帳號登入及有效 HTTPS 憑證的地端 AI 服務。本筆記主線沿用 WEEK2／WEEK3 的 Docker Nginx 與 Certbot，其他入口配置放在獨立分支。
+本次在目標 Ubuntu VM 的 Docker 上新增 Ollama 與 Open WebUI，使用 Gemma 3 1B 本機模型，正式入口為 [https://q3.qqnice.org](https://q3.qqnice.org)。主線沿用 VM 既有 Docker Nginx 與 Certbot；若入口為主機 Apache／Nginx，使用第 12 章。本次不部署到 NAS，也不設定 NAS 反向代理；原有兩網站及其他既有服務維持原功能。
 
 > 適用範圍：Ubuntu 24.04、已可正常使用 Docker Compose 的既有主機。這是一份部署操作手冊；完成狀態以本頁的實機驗收表為準。發佈前的文件檢查不等於已在目標 VM 安裝完成。
 
@@ -74,7 +74,7 @@ flowchart TB
 
 ## 2.2 分區圖：入口、三項服務、接口與資料
 
-圖中的網站 A、B 代表實機原有網域。WEEK2 示範值為 k1.kknice.net 與 q1.qqnice.org，請以你的 Nginx 設定為準。這張圖的 NAS 不另畫成公開入口，因為尚未確認它是檔案服務、Nextcloud，還是位於 VM 前方的反向代理；若屬於後者，改走第 13 章。
+圖中的網站 A、B 代表 VM 原有兩個網站，實際網域以既有設定為準。第三項服務為同一 Ubuntu VM 上的 AI 聊天網站，入口是 q3.qqnice.org。本次架構不經 NAS 反向代理。
 
 ![分區圖：三欄等寬，標明外部入口、內部接口及持久化資料；依本次討論架構重新繪製。](diagrams/q3-structured.png)
 
@@ -207,10 +207,10 @@ docker version 需能讀到 Server；context 不應意外指向其他 Docker 主
 | nginx 容器發布 80、443，且有 webstack 專案 | 主線：STEP 1 至 STEP 10 |
 | 主機 apache2 正在接收外部 80、443 | 第 12 章，主機 Apache |
 | 主機 nginx 正在接收外部 80、443 | 第 12 章，主機 Nginx |
-| 80、443 的路由先進 NAS 的代理服務 | 第 13 章，NAS 前置入口 |
+| 盤點發現入口實際位於另一台設備 | 先確認到本 VM 的既有路徑並記錄；本次不自行新增 NAS 規則 |
 | 同時存在多層代理，或無法判斷 | 先列出「Internet → 哪台設備 → 哪個 Port → VM」，確認後才改設定 |
 
-「有 NAS」不一定代表 NAS 管理 HTTPS。Nextcloud 作為網站程式、SMB 檔案分享、NAS 上的反向代理是不同角色。
+本次只修改目標 Ubuntu VM 的 AI 專案與適用的 VM 網站入口。若既有環境另有 NAS 或檔案分享，僅確認原功能，不把它當成本次部署目標。
 
 ## 3.3 資源檢查
 
@@ -235,7 +235,7 @@ VM 看不到 GPU 時先採 CPU 路線。實體主機有顯示卡，不代表 VM 
 檢查點：
 
 - [ ] 確認目標 VM、Docker context、既有 Compose 專案位置。
-- [ ] 確認誰接收外部 80／443，以及 NAS 是否位於前面。
+- [ ] 確認 VM 上誰接收外部 80／443；本次不設定 NAS 入口。
 - [ ] 記錄原有網站網址，瀏覽器確認都可正常使用。
 - [ ] 記錄可用 RAM、磁碟與 CPU，決定初始資源上限。
 
@@ -262,7 +262,7 @@ dig +short AAAA q3.qqnice.org
 dig +short CAA qqnice.org
 ```
 
-若有 CAA 限制，必須允許使用的憑證機構。新名稱屬於 qqnice.org；既有憑證只有明確涵蓋 q3.qqnice.org，或具有適用的 *.qqnice.org 萬用名稱時才能沿用。新增網站名稱不要求更改 Linux hostname。
+若有 CAA 限制，必須允許使用的憑證機構。正式名稱為 q3.qqnice.org；既有憑證只有明確涵蓋此名稱，或具有適用的 *.qqnice.org 萬用名稱時才能沿用。新增網站名稱不要求更改 Linux hostname。
 
 HTTP-01 驗證需要 Internet 能連到入口的 TCP 80；本機 hosts 檔不能代替公開 DNS。純內網或外部 80 不可達時，使用第 14 章的 DNS-01 路線。[Let’s Encrypt 驗證方式](https://letsencrypt.org/docs/challenge-types/)
 
@@ -731,7 +731,7 @@ curl --fail --show-error --max-time 15 \
   http://q3.qqnice.org/.well-known/acme-challenge/q3-probe
 ```
 
-必須看到 q3-acme-ok。若 404，查掛載及 location；若逾時，查 DNS／AAAA、路由、NSG、防火牆與 NAS；如果出現其他網站，查 server_name 或前方代理。
+必須看到 q3-acme-ok。若 404，查掛載及 location；若逾時，查 DNS／AAAA、路由、NSG 及防火牆；如果出現其他網站，查 VM 的 server_name 與既有入口路徑。
 
 本機能連線但外網失敗不算通過。不要用 curl -k 當成憑證通過的依據。
 
@@ -876,7 +876,7 @@ docker compose exec -T nginx nginx -s reload
 | X-Forwarded-For 使用 remote_addr | 單一公開入口時覆寫外部自行提供的來源標頭 |
 | 600 秒逾時 | 容許 CPU 推論較久；不是無限等待 |
 
-本設定假設 Nginx 直接接收使用者請求。如果前方另有 NAS／CDN／負載平衡器，來源 IP 信任鏈要按實際架構設定，不能任意相信所有來源的 X-Forwarded-For。
+本次由 VM 的既有入口接收 q3 請求，不新增 NAS 代理。若盤點發現原有 CDN／負載平衡器，來源 IP 信任鏈依既有實際路徑核對，不能任意相信所有來源的 X-Forwarded-For。
 
 [Nginx WebSocket](https://nginx.org/en/docs/http/websocket.html)；[Nginx 代理模組](https://nginx.org/en/docs/http/ngx_http_proxy_module.html)；[Open WebUI HTTPS 代理](https://docs.openwebui.com/reference/https/nginx/)
 
@@ -1310,73 +1310,15 @@ systemctl list-timers --all | grep certbot
 
 Docker Nginx、主機 Nginx、主機 Apache 三種入口實作只能選符合實機的那個，不讓它們同時搶占同一個 IP 的 80／443。HTTPS 完成後，依第 10.3 節查看初始帳密、登入及測試聊天；主機分支的續期使用本章的主機 Certbot 流程，再繼續第 16、17 章的備份及驗收。
 
-# 13 其他分支 NAS 位於 VM 前方
+# 13 本次部署範圍：Ubuntu VM
 
-## 13.1 先畫出真正路徑
+本次 Ollama、Open WebUI 與 Gemma 3 1B 全部部署在目標 Ubuntu VM。模型與帳號、對話資料保存在該 VM 的 Docker 本機資料卷。
 
-只有實機是「Internet → NAS 反向代理 → Linux VM」時用本章。NAS 只是檔案服務或 Nextcloud 應用時，不需要改成這種架構。
+公開入口為 https://q3.qqnice.org，使用這台 VM 既有的 Docker Nginx，或經盤點確認的主機 Apache／Nginx；HTTPS 憑證及續期也由這個 VM 入口管理。
 
-| 項目 | NAS 前置代理應設定的值 |
-| --- | --- |
-| 對外來源 | HTTPS，q3.qqnice.org，443 |
-| 目的後端 | HTTP，Linux VM 的實際內網 IP，3000 |
-| 憑證 | 涵蓋 q3.qqnice.org，指派給這條代理規則 |
-| 即時連線 | 開啟 WebSocket／Upgrade 轉送 |
-| 串流 | 關閉回答緩衝，允許足夠的回應逾時 |
-| 後端來源限制 | 只讓 NAS 或指定代理來源連到 VM 的 3000 |
+本次不在 NAS 安裝容器、不建立 NAS 反向代理、不將 q3 憑證交由 NAS 管理，也不將 WebUI 的 3000 發布到內網供 NAS 使用。若環境原有 NAS 或檔案服務，僅保留原有功能，不改它的設定。
 
-NAS 的 127.0.0.1 是 NAS 自己，不是 VM。VM 的 loopback 綁定也不能讓另一台 NAS 連線。
-
-## 13.2 在 VM 發布指定內網接口
-
-使用第 7 章的 AI 專案及第 6.1 節的網路，跳過 webstack 的修改。首次啟動前建立下列增補檔。這段不能與第 12.1 節重複建立。
-
-先查看 VM 的實際內網 IP：
-
-```bash
-ip -br address
-ip route
-```
-
-下面用 192.168.1.50 示範，必須改成上面查到且 NAS 可達的 VM IP。不要填 NAS 本身的 IP，也不要填不存在的公網 NAT 位址。
-
-```bash
-(
-set -euo pipefail
-cd "$HOME/q3-llm"
-test ! -e compose.override.yml
-test ! -e compose.override.yaml
-read -r -p "VM 的實際內網 IPv4：" vm_lan_ip
-python3 - "$vm_lan_ip" <<'PY'
-import ipaddress, sys
-address = ipaddress.ip_address(sys.argv[1])
-if address.version != 4 or address.is_loopback or address.is_unspecified:
-    raise SystemExit("停止：請填可由 NAS 存取的 VM IPv4")
-PY
-cat > compose.override.yml <<YAML
-services:
-  open-webui:
-    ports:
-      - "$vm_lan_ip:3000:8080"
-YAML
-docker compose config --quiet
-)
-```
-
-在啟動前，先在 NAS 到 VM 的網路／雲端防火牆或 Docker 適用的規則限制來源；不要只設定 UFW INPUT 就假設 Docker 發布的 3000 已受限制。確認後執行第 7.3 節的拉取與啟動指令，接著做第 8.1、8.2 節的模型與內部測試，跳過第 8.3 節。從 NAS 端測試 http://VM內網IP:3000/health。[Docker 連接埠與隔離](https://docs.docker.com/engine/network/port-publishing/)
-
-憑證應由真正接收使用者 TLS 的 NAS 管理。若內網不可信，可再為 NAS 到 VM 的第二段啟用 HTTPS 並驗證後端憑證；本章 HTTP 後端僅適用受控內網。
-
-## 13.3 NAS 驗收
-
-- [ ] NAS 的 q3 規則沒有替換原有網站規則。
-- [ ] q3 憑證已指派給正確的代理站台。
-- [ ] NAS 能到達 VM 的 3000；非授權來源不可達。
-- [ ] 外部只有正式 q3 HTTPS 入口，Ollama 11434 未發布。
-- [ ] 回答串流、WebSocket、登入及檔案上傳通過。
-- [ ] NAS 上的憑證自動續期實際可用。
-
-NAS 品牌與現行配置尚未提供，因此本章以必要欄位與驗收為準，不假設特定管理畫面的按鈕名稱。
+完成適用的 VM 入口設定後，繼續第 14 章的必要憑證分支，以及第 16、17 章的維護與驗收。
 
 # 14 其他分支 無法開放 Port 80 的憑證方式
 
@@ -1538,9 +1480,9 @@ docker compose ps
 
 模型大時打包會花較久，先確認備份磁碟空間。若中途失敗，.partial- 目錄不視為成功備份。腳本未自動刪除舊備份，也未自動做離機傳輸。
 
-備份包含 .env 與對話資料，應使用受控儲存及加密的離機備份方式。不要把預設 SQLite 的工作資料目錄隨意搬到 SMB／NFS 分享；先維持 Docker 本機資料卷，再將完成的備份複製到 NAS。
+備份包含 .env 與對話資料，應使用受控儲存及加密方式保護。工作資料保持在 VM 的 Docker 本機資料卷；本次先完成 VM 本機備份，離機副本可在指定位置與方式確認後另行安排，不以 NAS 權限作為本次部署前提。
 
-另使用第 5.2 節保存更新後的 webstack 入口設定與憑證；主機 Apache／NAS 分支則保存對應入口配置。
+另使用第 5.2 節保存更新後的 webstack 入口設定與憑證；主機 Apache／Nginx 分支則保存該 VM 的對應入口配置。
 
 ## 16.3 驗證備份檢查碼
 
@@ -1632,7 +1574,7 @@ docker compose stop open-webui ollama
 
 這會停止 q3 的應用路由，但不保證未知網域永遠顯示相同錯誤頁；回應由原有 default server 決定。q3 的 HTTP-01 續期也會失去驗證路徑，因此這是故障處理步驟，恢復時要同步處理入口和續期。
 
-資料 Volume 與憑證仍保留。若是主機 Apache，停用自己新增的 q3 站台後 configtest／reload；NAS 則停用 q3 的那條規則，不停掉 NAS 整體代理。
+資料 Volume 與憑證仍保留。主機 Apache／Nginx 分支只撤下自己新增的 q3 站台，設定檢查後 reload；不操作 NAS 設定。
 
 日後異機重建 Docker 主線時，必須先建立 q3-proxy 外部網路，再啟動兩份 Compose；也要帶回 compose.override.yml，不能只還原原始 compose.yml。
 
@@ -1707,7 +1649,7 @@ curl --connect-timeout 3 --max-time 5 http://你的VM對外IP:11434/api/tags
 2. 為什麼 Nginx 在容器時不能用 127.0.0.1:3000 找 VM 上的服務？
 3. Open WebUI 與 Ollama 分別負責什麼？
 4. Ollama 在容器內監聽 0.0.0.0，為什麼不一定代表對外開放？
-5. 憑證應安裝在哪一層？如果最前面是 NAS，會有什麼不同？
+5. Docker Nginx 與主機 Apache／Nginx 的憑證掛載或存放位置有何不同？
 6. 為什麼舊的 WordPress 備份不會自動保護新 AI 對話？
 7. 憑證取得成功、網站開得起來、長期部署完成，三者差在哪裡？
 
@@ -1722,18 +1664,17 @@ curl --connect-timeout 3 --max-time 5 http://你的VM對外IP:11434/api/tags
 | 找不到 q3-open-webui | 兩容器網路、alias | Nginx 與 WebUI 加入同一網路 |
 | nginx -t 找不到憑證 | 申請是否成功、掛載與路徑 | 先完成 HTTP 驗證，再啟用 HTTPS |
 | 憑證申請 404 | ACME root、共用掛載、前方代理 | 重做 q3-probe |
-| 憑證申請逾時 | A／AAAA、80、路由、NSG、NAS | 修通外部路徑再申請 |
+| 憑證申請逾時 | A／AAAA、80、路由、NSG、VM 防火牆 | 修通外部路徑再申請 |
 | 憑證不受信任 | staging 憑證、錯誤站台、日期 | 核對憑證來源及實際入口 |
 | 502 | WebUI 健康狀態、名稱解析、網路 | 先在 Nginx 內測 health |
 | 504／回答很慢 | 模型大小、CPU／GPU、RAM、逾時 | 小模型、單併發先驗證 |
-| 回答整段一次出現 | 入口緩衝、前方 NAS／CDN | 所有代理層都確認串流設定 |
+| 回答整段一次出現 | VM 入口緩衝、既有 CDN（如有） | 核對串流設定 |
 | 登入或 WebSocket 失敗 | 網址、Secure cookie、CORS、Upgrade | 統一正式 HTTPS 入口 |
 | 看不到模型 | OLLAMA_BASE_URL、ai 網路、模型清單 | WebUI 內測 api/tags |
 | 改環境變數沒生效 | Open WebUI 資料庫中的保存設定 | 用管理介面核對，不刪資料 |
 | 初始帳密無法重設舊帳號 | Volume 已有使用者 | 走原有帳號復原流程 |
 | 容器被 OOM 終止 | 資源上限、模型與上下文 | 降低需求，保留既有服務資源 |
 | 續期有新檔案但瀏覽器仍舊憑證 | TLS 終止點及 reload | 在正確入口載入新憑證 |
-| NAS 能登入但聊天卡住 | NAS WebSocket／緩衝／逾時 | 調整 NAS 代理規則 |
 
 Docker 主線排錯指令：
 
@@ -1762,10 +1703,10 @@ docker compose run --rm certbot certificates
 
 | 檢查項目 | 發佈前結果 | 能證明的範圍 |
 | --- | --- | --- |
-| Bash 區塊 | 73 個區塊均通過 bash -n | Bash 語法可解析；不代表每個指令已在 VM 執行 |
+| Bash 區塊 | 71 個區塊均通過 bash -n | Bash 語法可解析；不代表每個指令已在 VM 執行 |
 | 區塊內腳本 | Bash 腳本及 Python 程式語法通過 | 備份、續期及檢查腳本的語法 |
-| Compose YAML | 5 份 YAML 通過官方 Compose schema 檢查 | 設定結構符合規範 |
-| Compose 合併 | Docker Nginx、主機代理、NAS、GPU 四種配置均可解析 | 使用 Docker Compose v5.6.1 的 config 驗證，未啟動容器 |
+| Compose YAML | 4 份 YAML 通過官方 Compose schema 檢查 | 設定結構符合規範 |
+| Compose 合併 | Docker Nginx、主機代理、GPU 配置可解析 | 原文件使用 Docker Compose v5.6.1 的 config 驗證，未啟動容器；本次不採 NAS 配置 |
 | 舊專案相容性 | 與 WEEK3 範例合併後，只有 Nginx 的網路清單改變 | 原範例中其他服務設定保持一致；實機自訂設定仍要核對 |
 | Port 與資料 | 主線沒有發布 AI 容器 Port，網路別名與 Volume 名稱一致 | 靜態設定檢查通過 |
 | Nginx 範例 | 4 份設定完成結構與必要代理項目檢查 | 不是實機 nginx -t，部署時仍需執行 |

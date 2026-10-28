@@ -11,7 +11,7 @@
 | nginx.http.conf | Docker Nginx 首次 HTTP-01 驗證入口 |
 | nginx.https.conf | Docker Nginx 已取得正式憑證後的 HTTPS 與串流設定 |
 
-主機 Apache、主機 Nginx、NAS 前置代理的完整配置在 DEPLOYMENT_REFERENCE.md 第 12、13 章。不要把 Docker Nginx 的路徑和 resolver 套到主機 Nginx。
+主機 Apache／Nginx 的完整配置在 DEPLOYMENT_REFERENCE.md 第 12 章；第 13 章確認本次僅在 Ubuntu VM 部署，不使用 NAS 前置代理。不要把 Docker Nginx 的路徑和 resolver 套到主機 Nginx。
 
 範本映像版本沿用教材核對值；實際部署前由 Codex 驗證架構相容性與版本。CPU／RAM 上限依實機調整。模型預設為 gemma3:1b，請在 AI 專案啟動後執行：
 
