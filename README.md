@@ -85,6 +85,6 @@ Git 更新只更新任務和範本。已部署的 VM 設定由 Codex 比對、�
 
 ## 7. 來源與驗證範圍
 
-原始 [Notion 手冊](https://app.notion.com/p/407efa09c19681ee8fb5d78abdd37a0f) 的模型範例為 Qwen；本儲存庫改用 Gemma 3 1B，其他架構原則一致。任務寫法參考 [OpenAI Codex 工作流程](https://developers.openai.com/cookbook/examples/codex/iterating-development-workflows-with-codex)，部署授權以 CODEX_TASK.md 為準。
+對應的 [Docker 版 Notion 手冊](https://app.notion.com/p/407efa09c1968178be62d50b311d2e4b) 採用 Ollama 與 WebUI 兩個獨立 Docker 容器，以及 Gemma 3 1B。Host 版另見 [Ubuntu 原生 Ollama 講義](https://app.notion.com/p/407efa09c19681ee8fb5d78abdd37a0f)，兩種方案的服務管理與資料路徑不可混用。任務寫法參考 [OpenAI Codex 工作流程](https://developers.openai.com/cookbook/examples/codex/iterating-development-workflows-with-codex)，部署授權以 CODEX_TASK.md 為準。
 
 製作儲存庫時未登入目標 VM。本機語法／設定檢查通過，不代表 Ubuntu 服務、正式憑證或自動續期已完成，必須以部署後實測證據驗收。

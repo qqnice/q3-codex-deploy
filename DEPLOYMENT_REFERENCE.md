@@ -1,8 +1,8 @@
 # 部署操作參考手冊（離線副本）
 
-本儲存庫版本將示範模型調整為 gemma3:1b；與原始 Notion 手冊的 Qwen 範例不同。
+本儲存庫維持 Docker 版定位，對應 Ollama 與 WebUI 兩個獨立容器及 gemma3:1b；新版 Notion 講義另含重新設計的圖、工具設定與更完整還原演練。
 
-來源：[Notion 完整部署手冊](https://app.notion.com/p/407efa09c19681ee8fb5d78abdd37a0f)，文件日期 2026-10-28。
+來源：[Notion 完整部署手冊](https://app.notion.com/p/407efa09c1968178be62d50b311d2e4b)，文件日期 2026-10-28。
 
 本檔供 VM 上 Codex 查閱設定範例。以 [CODEX_TASK.md](CODEX_TASK.md) 的本次任務與實機盤點結果決定實作；本檔不代表伺服器已安裝完成。兩張圖已附在本包，不需登入 Notion。
 

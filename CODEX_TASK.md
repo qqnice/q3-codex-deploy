@@ -22,7 +22,7 @@
 2. 讀取本儲存庫的 `DEPLOYMENT_REFERENCE.md` 與 `templates/README.md`。參考範例涵蓋 VM 上的 Docker Nginx、主機 Apache、主機 Nginx 等分支；只執行符合實機的分支。先讀唯讀盤點工具 `scripts/inspect-host.sh`，確認後可執行。
 3. 若已有 `DEPLOYMENT_STATUS.md`，先讀取並核對實際檔案、容器、憑證及測試狀態，從未完成處繼續，不能只憑筆記宣稱成功。
 
-教材來源：[Notion 完整部署手冊](https://app.notion.com/p/407efa09c19681ee8fb5d78abdd37a0f)。本包已有離線副本，沒有 Notion 連線也可以工作。不要要求使用者先設定 Notion MCP。
+教材來源：[Notion 完整部署手冊](https://app.notion.com/p/407efa09c1968178be62d50b311d2e4b)。本包已有離線副本，沒有 Notion 連線也可以工作。不要要求使用者先設定 Notion MCP。
 
 以**實機證據**判斷目前狀態。教材中的路徑、服務名稱、版本及資源限制都是待核對的範例。不要把舊教材架構或範例 IP 當成實機現況。若本檔和教材步驟不同，本檔描述的本次目標及執行邊界優先；設定仍需依實機與官方文件核實。
 
