@@ -6,21 +6,12 @@ Git 保存任務、範本、檢查工具與架構圖。實際密碼、憑證、�
 
 ## 1. 在目標 Ubuntu 取得儲存庫
 
-這是私人儲存庫，VM 必須先有此 GitHub 帳號的存取權。若 VM 已配置 Git 的 HTTPS 認證：
+這是公開儲存庫，Ubuntu 可以直接下載，不需要 GitHub 帳號、登入或存取 token：
 
 ```bash
 git clone https://github.com/qqnice/q3-codex-deploy.git
 cd q3-codex-deploy
 ```
-
-若 VM 已安裝 GitHub CLI、但尚未登入，可先在自己的終端機完成登入：
-
-```bash
-gh auth login --hostname github.com
-gh auth setup-git
-```
-
-再執行上面的 clone。已有 SSH 金鑰者也可用 GitHub 顯示的 SSH clone 網址。不要將 GitHub token 寫入 clone 網址、提示詞或 .env。
 
 如果資料夾已存在，先檢查內容與 Git 狀態，不重新 clone 覆蓋。
 
