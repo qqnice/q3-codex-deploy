@@ -1,0 +1,11 @@
+services:
+  nginx:
+    networks:
+      default: {}
+      q3_proxy: {}
+
+networks:
+  default: {}
+  q3_proxy:
+    external: true
+    name: q3-proxy
