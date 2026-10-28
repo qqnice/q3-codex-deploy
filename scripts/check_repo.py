@@ -24,6 +24,18 @@ for path in (root / "scripts").glob("*.sh"):
 
 task = (root / "CODEX_TASK.md").read_text()
 guide = (root / "DEPLOYMENT_REFERENCE.md").read_text()
+domain = "q3.qqnice.org"
+for path in [*root.glob("*.md"), * (root / "templates").glob("*"), * (root / "scripts").glob("*.sh")]:
+    if path.is_file():
+        names = set(re.findall(r"\bq3\.[a-z0-9-]+\.[a-z]+\b", path.read_text()))
+        assert names <= {domain}, (path.name, names)
+for name in ["nginx.http.conf", "nginx.https.conf"]:
+    text = (root / "templates" / name).read_text()
+    assert f"server_name {domain};" in text
+tls = (root / "templates/nginx.https.conf").read_text()
+assert f"https://{domain}$request_uri" in tls
+assert f"/etc/letsencrypt/live/{domain}/fullchain.pem" in tls
+assert f"/etc/letsencrypt/live/{domain}/privkey.pem" in tls
 assert "gemma3:1b" in task and "gemma3:1b" in guide
 assert "qwen3:1.7b" not in guide
 assert "/no_think" not in guide
@@ -76,6 +88,8 @@ if compose_cmd:
     assert config["networks"]["proxy"]["name"] == "q3-proxy"
     assert "q3-open-webui" in services["open-webui"]["networks"]["proxy"]["aliases"]
     assert services["open-webui"]["environment"]["ENABLE_SIGNUP"] == "false"
+    assert services["open-webui"]["environment"]["WEBUI_URL"] == f"https://{domain}"
+    assert services["open-webui"]["environment"]["CORS_ALLOW_ORIGIN"] == f"https://{domain}"
     assert services["open-webui"]["environment"]["OLLAMA_BASE_URL"] == "http://ollama:11434"
     assert services["ollama"]["environment"]["OLLAMA_NO_CLOUD"] == "1"
     assert config["volumes"]["ollama-data"]["name"] == "q3-llm_ollama-data"

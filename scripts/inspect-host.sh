@@ -45,8 +45,8 @@ run docker stats --no-stream
 run ip -br address
 
 section 'q3 公開 DNS'
-run dig +short A q3.qqnas.org
-run dig +short AAAA q3.qqnas.org
-run dig +short CAA qqnas.org
+run dig +short A q3.qqnice.org
+run dig +short AAAA q3.qqnice.org
+run dig +short CAA qqnice.org
 
 printf '\n%s\n' '盤點結束。未更動任何服務；結果不等於部署通過。'

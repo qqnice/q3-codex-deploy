@@ -1,6 +1,6 @@
 # q3 地端 AI：交給 Ubuntu Codex 的部署任務
 
-在已有兩個網站與 NAS 的 Linux VM 上，新增 **Ollama + Open WebUI + Gemma 3 1B**，透過 **https://q3.qqnas.org** 使用。Codex 先盤點，再依實際 Docker／Apache／Nginx／NAS 入口完成部署及驗收。
+在已有兩個網站與 NAS 的 Linux VM 上，新增 **Ollama + Open WebUI + Gemma 3 1B**，透過 **https://q3.qqnice.org** 使用。Codex 先盤點，再依實際 Docker／Apache／Nginx／NAS 入口完成部署及驗收。
 
 Git 保存任務、範本、檢查工具與架構圖。實際密碼、憑證、模型、聊天資料及主機紀錄保存在 VM，不回推 Git。
 
@@ -19,7 +19,7 @@ cd q3-codex-deploy
 
 在 `q3-codex-deploy` 資料夾啟動你已安裝的 Codex，把下面文字貼到 **Codex 對話**：
 
-> 請讀取 CODEX_TASK.md、DEPLOYMENT_REFERENCE.md 及 templates/README.md，實際在這台 Ubuntu VM 部署 q3.qqnas.org 的 Ollama 與 Open WebUI，預設下載 gemma3:1b。先確認原有兩網站、NAS、Docker 和 80／443 入口，保留既有服務。依任務完成內部推論、HTTPS 憑證、自動續期、備份與驗收，將實際進度保存到 DEPLOYMENT_STATUS.md。一般部署步驟直接繼續，只有缺少必要資料或會中斷原有服務時才問我。現在開始唯讀盤點。
+> 請讀取 CODEX_TASK.md、DEPLOYMENT_REFERENCE.md 及 templates/README.md，實際在這台 Ubuntu VM 部署 q3.qqnice.org 的 Ollama 與 Open WebUI，預設下載 gemma3:1b。先確認原有兩網站、NAS、Docker 和 80／443 入口，保留既有服務。依任務完成內部推論、HTTPS 憑證、自動續期、備份與驗收，將實際進度保存到 DEPLOYMENT_STATUS.md。一般部署步驟直接繼續，只有缺少必要資料或會中斷原有服務時才問我。現在開始唯讀盤點。
 
 Codex 依相依關係持續執行。管理員信箱、憑證聯絡信箱、DNS 或 NAS 權限不足時，集中列出需要你提供的資料；不用預先填一大張主機規格表。
 

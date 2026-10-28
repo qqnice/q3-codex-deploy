@@ -8,7 +8,7 @@
 
 ---
 
-在既有 Linux 虛擬機上，保留原本兩個網站與 NAS 服務，新增 Ollama 與 Open WebUI，透過 **https://q3.qqnas.org** 提供具有帳號登入及有效 HTTPS 憑證的地端 AI 服務。本筆記主線沿用 WEEK2／WEEK3 的 Docker Nginx 與 Certbot，其他入口配置放在獨立分支。
+在既有 Linux 虛擬機上，保留原本兩個網站與 NAS 服務，新增 Ollama 與 Open WebUI，透過 **https://q3.qqnice.org** 提供具有帳號登入及有效 HTTPS 憑證的地端 AI 服務。本筆記主線沿用 WEEK2／WEEK3 的 Docker Nginx 與 Certbot，其他入口配置放在獨立分支。
 
 > 適用範圍：Ubuntu 24.04、已可正常使用 Docker Compose 的既有主機。這是一份部署操作手冊；完成狀態以本頁的實機驗收表為準。發佈前的文件檢查不等於已在目標 VM 安裝完成。
 
@@ -24,7 +24,7 @@
 | --- | --- | --- | --- |
 | 原有靜態網站 | Apache | 網站檔案 | 原有網域，HTTPS 443 |
 | 原有 WordPress | WordPress | MariaDB | 原有網域，HTTPS 443 |
-| 新增 AI 聊天網站 | Open WebUI | Ollama | q3.qqnas.org，HTTPS 443 |
+| 新增 AI 聊天網站 | Open WebUI | Ollama | q3.qqnice.org，HTTPS 443 |
 
 ## 1.1 本次與舊教材的關係
 
@@ -65,7 +65,7 @@ flowchart TB
     U["使用者瀏覽器"] -->|"HTTPS 443"| P["既有 Nginx 反向代理<br/>網域分流與 TLS 憑證"]
     P -->|"原有網域 A"| A["Apache 靜態網站<br/>web:80"]
     P -->|"原有網域 B"| W["WordPress<br/>wordpress:80"]
-    P -->|"q3.qqnas.org"| UI["Open WebUI<br/>q3-open-webui:8080"]
+    P -->|"q3.qqnice.org"| UI["Open WebUI<br/>q3-open-webui:8080"]
     W -->|"TCP 3306"| DB["MariaDB"]
     UI -->|"HTTP 11434"| O["Ollama 本機模型"]
     UI -.-> D1[("帳號與對話 Volume")]
@@ -83,7 +83,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     USER["使用者瀏覽器"]
-    DNS["DNS 解析<br/>網站 A・網站 B・q3.qqnas.org<br/>對應同一個對外入口"]
+    DNS["DNS 解析<br/>網站 A・網站 B・q3.qqnice.org<br/>對應同一個對外入口"]
     USER --> DNS
     subgraph VM["Linux 虛擬機｜保留既有服務，新增 AI 專案"]
         direction TB
@@ -112,7 +112,7 @@ flowchart TB
             end
             subgraph C["服務三｜新增地端 AI"]
                 direction TB
-                CR["q3.qqnas.org<br/>接口 HTTP 8080"]
+                CR["q3.qqnice.org<br/>接口 HTTP 8080"]
                 CW["Open WebUI 容器<br/>q3-open-webui:8080"]
                 CO["Ollama 容器<br/>ollama:11434"]
                 CV[("模型 Volume")]
@@ -243,7 +243,7 @@ VM 看不到 GPU 時先採 CPU 路線。實體主機有顯示卡，不代表 VM 
 
 ## 4.1 網域設定
 
-建立 q3.qqnas.org 的 A 紀錄，指向真正對外入口的 IPv4。若用 CNAME，也必須最終解析到正確入口。既有網站的 DNS 與 Port forwarding 保持原有路徑。
+建立 q3.qqnice.org 的 A 紀錄，指向真正對外入口的 IPv4。若用 CNAME，也必須最終解析到正確入口。既有網站的 DNS 與 Port forwarding 保持原有路徑。
 
 只有實際具備正確 IPv6 路徑時才保留 AAAA；不要留下指向另一台主機或無法連線的舊 AAAA。若 DNS 業者提供 CDN／代理功能，應先確認其 ACME 與串流設定；本筆記主線假設 DNS 直接解析到既有入口。
 
@@ -257,12 +257,12 @@ sudo apt-get install -y curl dnsutils openssl python3
 檢查公開解析：
 
 ```bash
-dig +short A q3.qqnas.org
-dig +short AAAA q3.qqnas.org
-dig +short CAA qqnas.org
+dig +short A q3.qqnice.org
+dig +short AAAA q3.qqnice.org
+dig +short CAA qqnice.org
 ```
 
-若有 CAA 限制，必須允許使用的憑證機構。新名稱屬於 qqnas.org，不能假設 qqnice.org 的舊憑證可使用。新增網站名稱不要求更改 Linux hostname。
+若有 CAA 限制，必須允許使用的憑證機構。新名稱屬於 qqnice.org；既有憑證只有明確涵蓋 q3.qqnice.org，或具有適用的 *.qqnice.org 萬用名稱時才能沿用。新增網站名稱不要求更改 Linux hostname。
 
 HTTP-01 驗證需要 Internet 能連到入口的 TCP 80；本機 hosts 檔不能代替公開 DNS。純內網或外部 80 不可達時，使用第 14 章的 DNS-01 路線。[Let’s Encrypt 驗證方式](https://letsencrypt.org/docs/challenge-types/)
 
@@ -532,12 +532,12 @@ services:
         condition: service_healthy
     environment:
       OLLAMA_BASE_URL: "http://ollama:11434"
-      WEBUI_URL: "https://q3.qqnas.org"
+      WEBUI_URL: "https://q3.qqnice.org"
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?請先建立密鑰}
       WEBUI_ADMIN_EMAIL: ${WEBUI_ADMIN_EMAIL:?請先設定管理員信箱}
       WEBUI_ADMIN_PASSWORD: ${WEBUI_ADMIN_PASSWORD:?請先設定初始密碼}
       ENABLE_SIGNUP: "false"
-      CORS_ALLOW_ORIGIN: "https://q3.qqnas.org"
+      CORS_ALLOW_ORIGIN: "https://q3.qqnice.org"
       WEBUI_AUTH_COOKIE_SECURE: "true"
       WEBUI_SESSION_COOKIE_SECURE: "true"
     volumes:
@@ -688,11 +688,11 @@ docker compose exec -T nginx \
 set -euo pipefail
 cd "$HOME/webstack"
 test -d nginx/conf.d
-test ! -e nginx/conf.d/zz-q3.qqnas.org.conf
-cat > nginx/conf.d/zz-q3.qqnas.org.conf <<'NGINX'
+test ! -e nginx/conf.d/zz-q3.qqnice.org.conf
+cat > nginx/conf.d/zz-q3.qqnice.org.conf <<'NGINX'
 server {
     listen 80;
-    server_name q3.qqnas.org;
+    server_name q3.qqnice.org;
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -728,7 +728,7 @@ printf 'q3-acme-ok\n' |
 
 ```bash
 curl --fail --show-error --max-time 15 \
-  http://q3.qqnas.org/.well-known/acme-challenge/q3-probe
+  http://q3.qqnice.org/.well-known/acme-challenge/q3-probe
 ```
 
 必須看到 q3-acme-ok。若 404，查掛載及 location；若逾時，查 DNS／AAAA、路由、NSG、防火牆與 NAS；如果出現其他網站，查 server_name 或前方代理。
@@ -744,7 +744,7 @@ cd "$HOME/webstack"
 docker compose run --rm certbot certificates
 ```
 
-若已有 q3.qqnas.org 的有效憑證，核對實際 Certificate Name 與路徑，沿用正確憑證；不要反覆重申請。以下適用尚未有 q3 憑證的首次部署。
+若已有 q3.qqnice.org 的有效憑證，核對實際 Certificate Name 與路徑，沿用正確憑證；不要反覆重申請。以下適用尚未有 q3 憑證的首次部署。
 
 ```bash
 (
@@ -754,8 +754,8 @@ read -r -p "憑證帳號聯絡信箱：" cert_email
 test -n "$cert_email"
 docker compose run --rm certbot certonly \
   --webroot --webroot-path /var/www/certbot \
-  --cert-name q3.qqnas.org \
-  -d q3.qqnas.org \
+  --cert-name q3.qqnice.org \
+  -d q3.qqnice.org \
   --email "$cert_email" --agree-tos \
   --dry-run
 )
@@ -773,16 +773,16 @@ read -r -p "憑證帳號聯絡信箱：" cert_email
 test -n "$cert_email"
 docker compose run --rm certbot certonly \
   --webroot --webroot-path /var/www/certbot \
-  --cert-name q3.qqnas.org \
-  -d q3.qqnas.org \
+  --cert-name q3.qqnice.org \
+  -d q3.qqnice.org \
   --email "$cert_email" --agree-tos
 docker compose run --rm certbot certificates
-sudo test -s certbot/conf/live/q3.qqnas.org/fullchain.pem
-sudo test -s certbot/conf/live/q3.qqnas.org/privkey.pem
+sudo test -s certbot/conf/live/q3.qqnice.org/fullchain.pem
+sudo test -s certbot/conf/live/q3.qqnice.org/privkey.pem
 )
 ```
 
-確認名稱涵蓋 q3.qqnas.org，且兩個檔案存在。主機路徑是 certbot/conf/live/...；Nginx 內看到的是 /etc/letsencrypt/live/...，不要混用。
+確認名稱涵蓋 q3.qqnice.org，且兩個檔案存在。主機路徑是 certbot/conf/live/...；Nginx 內看到的是 /etc/letsencrypt/live/...，不要混用。
 
 此路線使用 webroot，既有 Nginx 持續服務。不要為了申請憑證使用 standalone 去占用已被使用的 80，也不要停掉原有兩個網站。[Certbot 使用說明](https://eff-certbot.readthedocs.io/en/stable/using.html#webroot)
 
@@ -796,12 +796,12 @@ sudo test -s certbot/conf/live/q3.qqnas.org/privkey.pem
 (
 set -euo pipefail
 cd "$HOME/webstack"
-test -f nginx/conf.d/zz-q3.qqnas.org.conf
-sudo test -s certbot/conf/live/q3.qqnas.org/fullchain.pem
-sudo test -s certbot/conf/live/q3.qqnas.org/privkey.pem
-cp -a nginx/conf.d/zz-q3.qqnas.org.conf \
-  "nginx/conf.d/zz-q3.qqnas.org.conf.http-$(date +%Y%m%d-%H%M%S).bak"
-cat > nginx/conf.d/zz-q3.qqnas.org.conf <<'NGINX'
+test -f nginx/conf.d/zz-q3.qqnice.org.conf
+sudo test -s certbot/conf/live/q3.qqnice.org/fullchain.pem
+sudo test -s certbot/conf/live/q3.qqnice.org/privkey.pem
+cp -a nginx/conf.d/zz-q3.qqnice.org.conf \
+  "nginx/conf.d/zz-q3.qqnice.org.conf.http-$(date +%Y%m%d-%H%M%S).bak"
+cat > nginx/conf.d/zz-q3.qqnice.org.conf <<'NGINX'
 map $http_upgrade $q3_connection_upgrade {
     default upgrade;
     ''      close;
@@ -809,7 +809,7 @@ map $http_upgrade $q3_connection_upgrade {
 
 server {
     listen 80;
-    server_name q3.qqnas.org;
+    server_name q3.qqnice.org;
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -818,18 +818,18 @@ server {
     }
 
     location / {
-        return 301 https://q3.qqnas.org$request_uri;
+        return 301 https://q3.qqnice.org$request_uri;
     }
 }
 
 server {
     listen 443 ssl;
-    server_name q3.qqnas.org;
+    server_name q3.qqnice.org;
 
     ssl_certificate
-        /etc/letsencrypt/live/q3.qqnas.org/fullchain.pem;
+        /etc/letsencrypt/live/q3.qqnice.org/fullchain.pem;
     ssl_certificate_key
-        /etc/letsencrypt/live/q3.qqnas.org/privkey.pem;
+        /etc/letsencrypt/live/q3.qqnice.org/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
 
     client_max_body_size 50m;
@@ -885,12 +885,12 @@ docker compose exec -T nginx nginx -s reload
 【自己的電腦】：
 
 ```bash
-curl --show-error --max-time 15 -I http://q3.qqnas.org/
-curl --fail --show-error --max-time 20 -I https://q3.qqnas.org/
-curl --fail --show-error --max-time 20 https://q3.qqnas.org/health
+curl --show-error --max-time 15 -I http://q3.qqnice.org/
+curl --fail --show-error --max-time 20 -I https://q3.qqnice.org/
+curl --fail --show-error --max-time 20 https://q3.qqnice.org/health
 ```
 
-第一個應轉到 https://q3.qqnas.org/；第二、三個應通過系統正常的 TLS 驗證。瀏覽器確認憑證的網域、信任與有效時間，不使用忽略憑證警告的方式驗收。
+第一個應轉到 https://q3.qqnice.org/；第二、三個應通過系統正常的 TLS 驗證。瀏覽器確認憑證的網域、信任與有效時間，不使用忽略憑證警告的方式驗收。
 
 【目標 VM 的私人終端機】查看初始帳密，不截圖交作業：
 
@@ -898,7 +898,7 @@ curl --fail --show-error --max-time 20 https://q3.qqnas.org/health
 sed -n '/^WEBUI_ADMIN_EMAIL=/p; /^WEBUI_ADMIN_PASSWORD=/p' "$HOME/q3-llm/.env"
 ```
 
-開啟 https://q3.qqnas.org，登入後更改管理員密碼，保留固定 WEBUI_SECRET_KEY。確認模型供應者是 http://ollama:11434，選取 gemma3:1b，進行一段實際對話。
+開啟 https://q3.qqnice.org，登入後更改管理員密碼，保留固定 WEBUI_SECRET_KEY。確認模型供應者是 http://ollama:11434，選取 gemma3:1b，進行一段實際對話。
 
 若要開放學生帳號，在管理設定中選擇註冊與待審核策略，使用一般帳號測試權限。HTTPS 只保護傳輸，並不代替帳號登入及存取控制。
 
@@ -933,7 +933,7 @@ crontab 尚未建立時會顯示 no crontab，這不代表服務壞掉。也要�
 set -euo pipefail
 cd "$HOME/webstack"
 docker compose run --rm -T certbot renew \
-  --cert-name q3.qqnas.org --dry-run
+  --cert-name q3.qqnice.org --dry-run
 docker compose exec -T nginx nginx -t
 )
 ```
@@ -957,7 +957,7 @@ cd "$(dirname "$0")"
 exec 9>.renew-q3.lock
 flock -n 9 || exit 0
 docker compose run --rm -T certbot renew \
-  --cert-name q3.qqnas.org --quiet
+  --cert-name q3.qqnice.org --quiet
 docker compose exec -T nginx nginx -t
 docker compose exec -T nginx nginx -s reload
 printf '%s q3 續期檢查與 Nginx 載入完成\n' "$(date --iso-8601=seconds)"
@@ -1059,10 +1059,10 @@ sudo mkdir -p /var/www/q3-acme/.well-known/acme-challenge
 ```bash
 (
 set -euo pipefail
-sudo test ! -e /etc/apache2/sites-available/q3.qqnas.org.conf
-sudo tee /etc/apache2/sites-available/q3.qqnas.org.conf >/dev/null <<'APACHE'
+sudo test ! -e /etc/apache2/sites-available/q3.qqnice.org.conf
+sudo tee /etc/apache2/sites-available/q3.qqnice.org.conf >/dev/null <<'APACHE'
 <VirtualHost *:80>
-    ServerName q3.qqnas.org
+    ServerName q3.qqnice.org
     DocumentRoot /var/www/q3-acme
     <Directory /var/www/q3-acme>
         Require all granted
@@ -1071,7 +1071,7 @@ sudo tee /etc/apache2/sites-available/q3.qqnas.org.conf >/dev/null <<'APACHE'
     </Directory>
 </VirtualHost>
 APACHE
-sudo a2ensite q3.qqnas.org.conf
+sudo a2ensite q3.qqnice.org.conf
 sudo apache2ctl configtest
 sudo systemctl reload apache2
 printf 'q3-acme-ok\n' |
@@ -1083,7 +1083,7 @@ printf 'q3-acme-ok\n' |
 
 ```bash
 curl --fail --show-error --max-time 15 \
-  http://q3.qqnas.org/.well-known/acme-challenge/q3-probe
+  http://q3.qqnice.org/.well-known/acme-challenge/q3-probe
 ```
 
 看到 q3-acme-ok 才進行下面的主機 Certbot 流程。
@@ -1107,14 +1107,14 @@ sudo apt-get install -y certbot
 
 ```bash
 sudo certbot certonly --webroot -w /var/www/q3-acme \
-  --cert-name q3.qqnas.org -d q3.qqnas.org --dry-run
+  --cert-name q3.qqnice.org -d q3.qqnice.org --dry-run
 ```
 
 成功後正式申請，依提示輸入自己的憑證帳號信箱：
 
 ```bash
 sudo certbot certonly --webroot -w /var/www/q3-acme \
-  --cert-name q3.qqnas.org -d q3.qqnas.org
+  --cert-name q3.qqnice.org -d q3.qqnice.org
 sudo certbot certificates
 ```
 
@@ -1125,12 +1125,12 @@ sudo certbot certificates
 ```bash
 (
 set -euo pipefail
-sudo test -s /etc/letsencrypt/live/q3.qqnas.org/fullchain.pem
-sudo cp -a /etc/apache2/sites-available/q3.qqnas.org.conf \
-  "/etc/apache2/sites-available/q3.qqnas.org.conf.$(date +%Y%m%d-%H%M%S).bak"
-sudo tee /etc/apache2/sites-available/q3.qqnas.org.conf >/dev/null <<'APACHE'
+sudo test -s /etc/letsencrypt/live/q3.qqnice.org/fullchain.pem
+sudo cp -a /etc/apache2/sites-available/q3.qqnice.org.conf \
+  "/etc/apache2/sites-available/q3.qqnice.org.conf.$(date +%Y%m%d-%H%M%S).bak"
+sudo tee /etc/apache2/sites-available/q3.qqnice.org.conf >/dev/null <<'APACHE'
 <VirtualHost *:80>
-    ServerName q3.qqnas.org
+    ServerName q3.qqnice.org
     DocumentRoot /var/www/q3-acme
     <Directory /var/www/q3-acme>
         Require all granted
@@ -1139,14 +1139,14 @@ sudo tee /etc/apache2/sites-available/q3.qqnas.org.conf >/dev/null <<'APACHE'
     </Directory>
     RewriteEngine On
     RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
-    RewriteRule ^ https://q3.qqnas.org%{REQUEST_URI} [R=301,L,NE]
+    RewriteRule ^ https://q3.qqnice.org%{REQUEST_URI} [R=301,L,NE]
 </VirtualHost>
 
 <VirtualHost *:443>
-    ServerName q3.qqnas.org
+    ServerName q3.qqnice.org
     SSLEngine On
-    SSLCertificateFile /etc/letsencrypt/live/q3.qqnas.org/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/q3.qqnas.org/privkey.pem
+    SSLCertificateFile /etc/letsencrypt/live/q3.qqnice.org/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/q3.qqnice.org/privkey.pem
     SSLProtocol -all +TLSv1.2 +TLSv1.3
 
     ProxyRequests Off
@@ -1180,13 +1180,13 @@ sudo test ! -e /etc/letsencrypt/renewal-hooks/deploy/q3-reload-apache
 sudo tee /etc/letsencrypt/renewal-hooks/deploy/q3-reload-apache >/dev/null <<'BASH'
 #!/bin/sh
 set -eu
-if [ "${RENEWED_LINEAGE:-}" = "/etc/letsencrypt/live/q3.qqnas.org" ]; then
+if [ "${RENEWED_LINEAGE:-}" = "/etc/letsencrypt/live/q3.qqnice.org" ]; then
     /usr/sbin/apache2ctl configtest
     /usr/bin/systemctl reload apache2
 fi
 BASH
 sudo chmod 755 /etc/letsencrypt/renewal-hooks/deploy/q3-reload-apache
-sudo certbot renew --cert-name q3.qqnas.org --dry-run --run-deploy-hooks
+sudo certbot renew --cert-name q3.qqnice.org --dry-run --run-deploy-hooks
 systemctl list-timers --all | grep certbot
 )
 ```
@@ -1211,12 +1211,12 @@ sudo nginx -T | less
 ```bash
 (
 set -euo pipefail
-sudo test ! -e /etc/nginx/conf.d/zz-q3.qqnas.org.conf
+sudo test ! -e /etc/nginx/conf.d/zz-q3.qqnice.org.conf
 sudo mkdir -p /var/www/q3-acme/.well-known/acme-challenge
-sudo tee /etc/nginx/conf.d/zz-q3.qqnas.org.conf >/dev/null <<'NGINX'
+sudo tee /etc/nginx/conf.d/zz-q3.qqnice.org.conf >/dev/null <<'NGINX'
 server {
     listen 80;
-    server_name q3.qqnas.org;
+    server_name q3.qqnice.org;
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/q3-acme;
         try_files $uri =404;
@@ -1238,30 +1238,30 @@ printf 'q3-acme-ok\n' |
 ```bash
 (
 set -euo pipefail
-sudo test -s /etc/letsencrypt/live/q3.qqnas.org/fullchain.pem
-sudo cp -a /etc/nginx/conf.d/zz-q3.qqnas.org.conf \
-  "/etc/nginx/conf.d/zz-q3.qqnas.org.conf.$(date +%Y%m%d-%H%M%S).bak"
-sudo tee /etc/nginx/conf.d/zz-q3.qqnas.org.conf >/dev/null <<'NGINX'
+sudo test -s /etc/letsencrypt/live/q3.qqnice.org/fullchain.pem
+sudo cp -a /etc/nginx/conf.d/zz-q3.qqnice.org.conf \
+  "/etc/nginx/conf.d/zz-q3.qqnice.org.conf.$(date +%Y%m%d-%H%M%S).bak"
+sudo tee /etc/nginx/conf.d/zz-q3.qqnice.org.conf >/dev/null <<'NGINX'
 map $http_upgrade $q3_connection_upgrade {
     default upgrade;
     ''      close;
 }
 server {
     listen 80;
-    server_name q3.qqnas.org;
+    server_name q3.qqnice.org;
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/q3-acme;
         try_files $uri =404;
     }
     location / {
-        return 301 https://q3.qqnas.org$request_uri;
+        return 301 https://q3.qqnice.org$request_uri;
     }
 }
 server {
     listen 443 ssl;
-    server_name q3.qqnas.org;
-    ssl_certificate /etc/letsencrypt/live/q3.qqnas.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/q3.qqnas.org/privkey.pem;
+    server_name q3.qqnice.org;
+    ssl_certificate /etc/letsencrypt/live/q3.qqnice.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/q3.qqnice.org/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     client_max_body_size 50m;
     location / {
@@ -1297,13 +1297,13 @@ sudo test ! -e /etc/letsencrypt/renewal-hooks/deploy/q3-reload-nginx
 sudo tee /etc/letsencrypt/renewal-hooks/deploy/q3-reload-nginx >/dev/null <<'BASH'
 #!/bin/sh
 set -eu
-if [ "${RENEWED_LINEAGE:-}" = "/etc/letsencrypt/live/q3.qqnas.org" ]; then
+if [ "${RENEWED_LINEAGE:-}" = "/etc/letsencrypt/live/q3.qqnice.org" ]; then
     /usr/sbin/nginx -t
     /usr/bin/systemctl reload nginx
 fi
 BASH
 sudo chmod 755 /etc/letsencrypt/renewal-hooks/deploy/q3-reload-nginx
-sudo certbot renew --cert-name q3.qqnas.org --dry-run --run-deploy-hooks
+sudo certbot renew --cert-name q3.qqnice.org --dry-run --run-deploy-hooks
 systemctl list-timers --all | grep certbot
 )
 ```
@@ -1318,9 +1318,9 @@ Docker Nginx、主機 Nginx、主機 Apache 三種入口實作只能選符合實
 
 | 項目 | NAS 前置代理應設定的值 |
 | --- | --- |
-| 對外來源 | HTTPS，q3.qqnas.org，443 |
+| 對外來源 | HTTPS，q3.qqnice.org，443 |
 | 目的後端 | HTTP，Linux VM 的實際內網 IP，3000 |
-| 憑證 | 涵蓋 q3.qqnas.org，指派給這條代理規則 |
+| 憑證 | 涵蓋 q3.qqnice.org，指派給這條代理規則 |
 | 即時連線 | 開啟 WebSocket／Upgrade 轉送 |
 | 串流 | 關閉回答緩衝，允許足夠的回應逾時 |
 | 後端來源限制 | 只讓 NAS 或指定代理來源連到 VM 的 3000 |
@@ -1380,7 +1380,7 @@ NAS 品牌與現行配置尚未提供，因此本章以必要欄位與驗收為�
 
 # 14 其他分支 無法開放 Port 80 的憑證方式
 
-HTTP-01 需要外部 TCP 80。位於 CGNAT、機構封鎖 80、或僅內網使用時，可改用 DNS-01，透過 _acme-challenge.q3.qqnas.org 的 TXT 證明網域控制權。
+HTTP-01 需要外部 TCP 80。位於 CGNAT、機構封鎖 80、或僅內網使用時，可改用 DNS-01，透過 _acme-challenge.q3.qqnice.org 的 TXT 證明網域控制權。
 
 正式部署應選 DNS 業者支援的 Certbot DNS 外掛或其他 ACME 客戶端，給予只限必要網域／紀錄的權限，將憑證交給真正的 HTTPS 入口，並設定成功續期後載入。
 
@@ -1389,13 +1389,13 @@ HTTP-01 需要外部 TCP 80。位於 CGNAT、機構封鎖 80、或僅內網使�
 ```bash
 # 教師理解 DNS-01 用；手動 TXT 不會自動續期。
 sudo certbot certonly --manual --preferred-challenges dns \
-  --cert-name q3.qqnas.org -d q3.qqnas.org
+  --cert-name q3.qqnice.org -d q3.qqnice.org
 ```
 
 依提示建立 TXT，等待公開 DNS 查得到：
 
 ```bash
-dig +short TXT _acme-challenge.q3.qqnas.org
+dig +short TXT _acme-challenge.q3.qqnice.org
 ```
 
 若最後採此分支，在驗收表註明 DNS 業者、實際 ACME 工具、憑證同步位置及續期測試結果。只做一次手動 TXT 不算完成長期部署。[DNS-01 說明](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
@@ -1620,9 +1620,9 @@ Docker Nginx 主線可先撤下本次新增的 q3 設定，保持其他網站：
 (
 set -euo pipefail
 cd "$HOME/webstack"
-test -f nginx/conf.d/zz-q3.qqnas.org.conf
-mv nginx/conf.d/zz-q3.qqnas.org.conf \
-  "nginx/conf.d/zz-q3.qqnas.org.conf.disabled-$(date +%Y%m%d-%H%M%S)"
+test -f nginx/conf.d/zz-q3.qqnice.org.conf
+mv nginx/conf.d/zz-q3.qqnice.org.conf \
+  "nginx/conf.d/zz-q3.qqnice.org.conf.disabled-$(date +%Y%m%d-%H%M%S)"
 docker compose exec -T nginx nginx -t
 docker compose exec -T nginx nginx -s reload
 cd "$HOME/q3-llm"
@@ -1659,8 +1659,8 @@ ollama ps 只顯示目前仍載入記憶體的模型；閒置後清空不等於�
 【自己的電腦】：
 
 ```bash
-curl --fail --show-error --max-time 20 https://q3.qqnas.org/health
-curl --show-error --max-time 15 -I http://q3.qqnas.org/
+curl --fail --show-error --max-time 20 https://q3.qqnice.org/health
+curl --show-error --max-time 15 -I http://q3.qqnice.org/
 ```
 
 從外部測試 VM 的 11434 不應直接取得 Ollama 回應：

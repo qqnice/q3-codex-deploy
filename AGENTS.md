@@ -1,6 +1,6 @@
 # Repository instructions
 
-This repository is an Ubuntu deployment task kit for q3.qqnas.org, using Ollama, Open WebUI, and the small local model gemma3:1b.
+This repository is an Ubuntu deployment task kit for q3.qqnice.org, using Ollama, Open WebUI, and the small local model gemma3:1b.
 
 - When the user asks to deploy on a Linux VM, read CODEX_TASK.md first, then DEPLOYMENT_REFERENCE.md and templates/README.md. Verify the actual host and existing services before modifying anything.
 - When editing or reviewing this repository, work on the repository only. Do not interpret the deployment instructions as permission to deploy on the development computer.

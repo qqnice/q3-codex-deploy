@@ -38,12 +38,12 @@ services:
         condition: service_healthy
     environment:
       OLLAMA_BASE_URL: "http://ollama:11434"
-      WEBUI_URL: "https://q3.qqnas.org"
+      WEBUI_URL: "https://q3.qqnice.org"
       WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?請先建立密鑰}
       WEBUI_ADMIN_EMAIL: ${WEBUI_ADMIN_EMAIL:?請先設定管理員信箱}
       WEBUI_ADMIN_PASSWORD: ${WEBUI_ADMIN_PASSWORD:?請先設定初始密碼}
       ENABLE_SIGNUP: "false"
-      CORS_ALLOW_ORIGIN: "https://q3.qqnas.org"
+      CORS_ALLOW_ORIGIN: "https://q3.qqnice.org"
       WEBUI_AUTH_COOKIE_SECURE: "true"
       WEBUI_SESSION_COOKIE_SECURE: "true"
     volumes:
