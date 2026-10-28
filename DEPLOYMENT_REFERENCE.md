@@ -14,6 +14,27 @@
 
 閱讀順序：先盤點與選分支，再依實機執行；主提示詞為 [CODEX_TASK.md](CODEX_TASK.md)。
 
+## 安裝型態：Ollama 與 Open WebUI 都是獨立 Docker 容器
+
+本次安裝型態固定如下。「Ubuntu VM 是部署主機」表示 Docker 運作在這台 VM，不代表把 Ollama 安裝成 Ubuntu 的 systemd 服務。
+
+| 元件 | 本次安裝／執行方式 | 作用 |
+| --- | --- | --- |
+| Docker Engine／Compose | 安裝於 Ubuntu VM | 管理容器 |
+| Ollama | 獨立 Docker 容器，使用 ollama/ollama 映像 | 載入 Gemma 3 1B 並在 VM 的 CPU／可用 GPU 上推論 |
+| Open WebUI | 另一個獨立 Docker 容器，使用 ghcr.io/open-webui/open-webui 映像 | 提供帳號、聊天網頁與後端連線 |
+| Gemma 3 1B | 由 Ollama 容器下載至 ollama-data Volume | 本機模型權重，不是第三個容器 |
+| Nginx／Apache | 沿用 VM 既有入口，可為 Docker 容器或主機服務 | 網域、HTTPS、反向代理 |
+| 模型及聊天資料 | Docker 本機 Volume，實體資料位於 VM 磁碟 | 容器重建後保留資料 |
+
+WebUI 透過 `http://ollama:11434` 連到 Ollama 容器；使用者透過 `https://q3.qqnice.org` 連到 WebUI 的反向代理入口。
+
+第 12 章的「主機 Apache／Nginx」只改變網站入口與憑證管理位置。該章仍使用第 7 章的兩個 AI 容器，僅把 WebUI 綁在主機 loopback 的 3000，供入口代理存取；它不是 Host Ollama 安裝方案。
+
+本次不使用 Host Ollama 安裝腳本／systemd，也不使用把 Ollama 與 WebUI 合在同一個容器的 all-in-one 方案。如果實機已有主機 Ollama，先記錄其用途與模型資料，不自行刪除或另改連線。
+
+Docker 是 Ollama 官方提供的執行方式；Open WebUI 是可連接模型服務的網頁介面。它們負責不同工作，不代表自行訓練了新的模型。[Ollama Docker 官方文件](https://docs.ollama.com/docker)；[Open WebUI 官方安裝文件](https://docs.openwebui.com/getting-started/quick-start/)
+
 # 1 課程目標與既有進度
 
 完成後，你應能說明瀏覽器如何經過 DNS、反向代理、Open WebUI 到達 Ollama；也能區分主機 Port、容器 Port、Docker 網路、資料 Volume 與憑證。
@@ -1004,9 +1025,9 @@ tail -n 30 "$HOME/webstack/renew-q3.log"
 
 [Certbot 續期文件](https://eff-certbot.readthedocs.io/en/stable/using.html#renewing-certificates)
 
-# 12 其他分支 主機 Apache 或主機 Nginx
+# 12 入口分支：主機 Apache／Nginx（AI 仍用 Docker）
 
-本章只在 STEP 0 判定入口是 Linux 主機服務時使用。不要同時做 Docker Nginx 主線的入口設定。
+本章只在 STEP 0 判定網站入口是 Linux 主機上的 Apache／Nginx 時使用。Ollama 與 Open WebUI 仍是第 7 章的兩個獨立 Docker 容器；本章不安裝 Host Ollama。不要同時做 Docker Nginx 主線的入口設定。
 
 ## 12.1 共用的 AI 後端準備
 

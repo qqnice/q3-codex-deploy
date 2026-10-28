@@ -4,6 +4,8 @@
 
 Git 保存任務、範本、檢查工具與架構圖。實際密碼、憑證、模型、聊天資料及主機紀錄保存在 VM，不回推 Git。
 
+**安裝方式：Ollama 與 Open WebUI 各自運作在獨立 Docker 容器。** Ubuntu VM 是 Docker 主機；Gemma 3 1B 由 Ollama 容器下載至資料卷並在 VM 上推論。文件裡的「主機 Apache／Nginx」只指既有網站入口，不是把 Ollama 改裝成主機服務，也不是把 WebUI 和 Ollama 合成一個容器。
+
 本次只在 Ubuntu VM 部署，正式網域為 **q3.qqnice.org**。NAS 僅屬既有服務背景，本次不安裝到 NAS、不新增 NAS 代理或憑證設定。
 
 ## 1. 在目標 Ubuntu 取得儲存庫

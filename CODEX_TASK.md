@@ -104,6 +104,7 @@ docker stats --no-stream
 
 ### 5.2 AI 專案與版本
 
+- Ollama 與 Open WebUI 必須是兩個獨立 Docker 容器。任何主機 Apache／Nginx 入口分支仍沿用這兩個容器；不把 Ollama 改成 Host/systemd 安裝，也不改用 WebUI 內綁 Ollama 的 all-in-one 映像。已有 Host Ollama 時先盤點，不刪除、不自動切換後端。
 - 優先用獨立 Compose 專案 `q3-llm`，服務名稱 `ollama` 與 `open-webui`；實作前檢查相同名稱、檔案、Volume 是否已存在。若已部分部署，先辨識並接續，不重新初始化。
 - 手冊曾核對 Ollama `0.40.12`、Open WebUI `v0.12.4`；這是教材記錄，不是永遠最新版的承諾。部署時核對官方映像、CPU 架構、版本發布說明及已知問題，選擇可用的固定版本並記錄 tag 與 digest。不得臆造 tag，也不要無理由改成 latest／main。
 - 本次明確使用小型模型 **`gemma3:1b`**，從官方 Ollama library 下載至 VM 的模型 Volume，不下載到 Git 儲存庫，也不預設拉取未指定大小的 gemma3／latest。它是文字模型，適合先做部署與輕量聊天驗證，不能宣稱有圖片理解能力。記錄實際模型 ID、量化、大小與推論結果；1B 的回答品質需實測。

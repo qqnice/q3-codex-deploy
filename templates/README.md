@@ -2,6 +2,8 @@
 
 先完成 CODEX_TASK.md 的唯讀盤點，才選擇並複製範本到實際部署目錄。這裡沒有預設開放外部 Port，也不會自動改原有網站。
 
+Ollama 與 Open WebUI 始終是兩個獨立 Docker 容器。compose.host.yml 的 host 只表示「讓主機上的 Apache／Nginx 透過 loopback 3000 存取 WebUI」，不表示 Host 安裝 Ollama。
+
 | 範本 | 適用 |
 | --- | --- |
 | compose.yml | 獨立 AI 專案：Ollama + Open WebUI，兩者均不發布主機 Port |
